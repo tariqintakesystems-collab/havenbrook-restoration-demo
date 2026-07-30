@@ -404,7 +404,7 @@ export default function Home() {
         leadTag: leadTag(newTier, newPeril),
         name: leadInfo?.name || "",
         phone: leadInfo?.phone || "",
-        email: leadInfo?.email || "not provided",
+        contactEmail: leadInfo?.email || "not provided",
         address: leadInfo?.address || "",
         bestTime: leadInfo?.time || "",
         peril: newPeril,
@@ -413,6 +413,10 @@ export default function Home() {
         photos: photos.join(", ") || "none attached",
         transcript: transcriptForSubmit.map((m: any) => `${m.role === "user" ? "VISITOR" : "ASSISTANT"}: ${m.content}`).join("\n"),
       };
+      // Deliberately NOT keying this "email": Formspree auto-validates any field
+      // literally named "email" as a real email address and rejects the whole
+      // submission (422) if it isn't one. Email is optional on our form, so a
+      // placeholder like "not provided" would silently drop every emailless lead.
       submitToFormspree(payload);
       setFinalLeadData({
         ...leadInfo,
@@ -490,7 +494,7 @@ export default function Home() {
         leadTag: leadTag(urgencyTier, peril),
         name: data.name,
         phone: data.phone,
-        email: data.email || "not provided",
+        contactEmail: data.email || "not provided",
         address: data.address,
         bestTime: data.time,
         peril: peril,
