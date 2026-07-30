@@ -343,7 +343,7 @@ export default function Home() {
     try {
       const fd = new FormData();
       Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
-      const res = await fetch("https://formspree.io/f/YOUR_FORM_ID", {
+      const res = await fetch("https://formspree.io/f/xrendjne", {
         method: "POST",
         headers: { Accept: "application/json" },
         body: fd,
