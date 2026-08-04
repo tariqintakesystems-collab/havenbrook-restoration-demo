@@ -78,7 +78,13 @@ function generateLeadId() {
   return `HB-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
 }
 
-type ChatMessage = { role: string; content: string; kind?: "photo" | "note" };
+type ChatMessage = {
+  id?: string;
+  role: string;
+  content: string;
+  kind?: "photo" | "note";
+  uploadState?: "uploading" | "failed";
+};
 
 // `kind` is only ever set by our own code (handleAttach, handleContactSubmit) — never derived
 // from parsing a message's text. A visitor typing literal "[SYSTEM_NOTE: ...]" or
@@ -86,7 +92,7 @@ type ChatMessage = { role: string; content: string; kind?: "photo" | "note" };
 // can never be mistaken for a trusted system event, either in rendering or in what gets sent
 // to the model. This was previously string-pattern-based and spoofable.
 function toApiMessage(m: ChatMessage) {
-  if (m.role === "user" && m.kind === "photo") {
+  if (m.role === "user" && m.kind === "photo" && !m.uploadState) {
     return {
       role: "user",
       content: [
@@ -486,7 +492,16 @@ function RedesignedShell({
                       </div>
                     )}
                     {isPhoto ? (
-                      <img src={message.content} alt="Attached property photo" />
+                      <div className="photo-preview">
+                        <img src={message.content} alt="Attached property photo" />
+                        {message.uploadState === "uploading" && (
+                          <div className="photo-upload-status" role="status">
+                            <span aria-hidden="true" />
+                            Uploading photo…
+                          </div>
+                        )}
+                        {message.uploadState === "failed" && <div className="photo-upload-status failed">Upload failed</div>}
+                      </div>
                     ) : (
                       message.content
                     )}
@@ -553,7 +568,7 @@ function RedesignedShell({
                     }
                   }}
                   placeholder="Describe what happened…"
-                  disabled={loading}
+                  disabled={loading || uploading}
                   rows={1}
                   aria-label="Describe your restoration situation"
                 />
@@ -561,7 +576,7 @@ function RedesignedShell({
                   className={"send-button" + (urgent ? " urgent" : "")}
                   type="button"
                   onClick={() => send(input)}
-                  disabled={loading || !input.trim()}
+                  disabled={loading || uploading || !input.trim()}
                   aria-label="Send message"
                 >
                   <Icon name="send" size={18} />
@@ -714,7 +729,7 @@ export default function Home() {
   };
 
   const send = async (text: string) => {
-    if (!text.trim() || loading || phase === "contact_form" || phase === "done") return;
+    if (!text.trim() || loading || uploading || phase === "contact_form" || phase === "done") return;
     const next = [...messages, { role: "user", content: text }];
     setMessages(next);
     setInput("");
@@ -736,6 +751,17 @@ export default function Home() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
+    const uploadId = `photo-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const previewUrl = URL.createObjectURL(file);
+    const previewMessage: ChatMessage = {
+      id: uploadId,
+      role: "user",
+      content: previewUrl,
+      kind: "photo",
+      uploadState: "uploading",
+    };
+    const withPreview = [...messages, previewMessage];
+    setMessages(withPreview);
     setUploading(true);
     try {
       const res = await fetch("/api/upload", {
@@ -751,17 +777,22 @@ export default function Home() {
       }
       if (res.ok && data?.url) {
         setPhotos((p) => [...p, data.url]);
-        const next: ChatMessage[] = [...messages, { role: "user", content: data.url, kind: "photo" }];
+        const next = withPreview.map((message) =>
+          message.id === uploadId ? { ...message, content: data.url, uploadState: undefined } : message,
+        );
+        URL.revokeObjectURL(previewUrl);
         setMessages(next);
         setLoading(true);
         await callChat(next, phase === "enrichment");
-        setLoading(false);
       } else {
+        setMessages((current) => current.map((message) => (message.id === uploadId ? { ...message, uploadState: "failed" } : message)));
         setMessages((m) => [...m, { role: "assistant", content: `That upload didn't go through (${data?.error || "unknown error"}) — mind trying again?` }]);
       }
     } catch (err: any) {
+      setMessages((current) => current.map((message) => (message.id === uploadId ? { ...message, uploadState: "failed" } : message)));
       setMessages((m) => [...m, { role: "assistant", content: `That upload didn't go through (${err?.message || "network error"}) — mind trying again?` }]);
     } finally {
+      setLoading(false);
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }

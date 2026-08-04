@@ -64,7 +64,8 @@ select:focus-visible {
 }
 
 .app-shell {
-  min-height: 100dvh;
+  height: 100dvh;
+  min-height: 0;
   position: relative;
   display: grid;
   place-items: center;
@@ -106,8 +107,8 @@ select:focus-visible {
 
 .demo-frame {
   width: min(1180px, 100%);
-  height: min(820px, calc(100dvh - 68px));
-  min-height: 680px;
+  height: min(820px, 100%);
+  min-height: 0;
   position: relative;
   z-index: 1;
   display: grid;
@@ -121,6 +122,7 @@ select:focus-visible {
 }
 
 .brand-panel {
+  min-height: 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -289,8 +291,10 @@ select:focus-visible {
 
 .chat-panel {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--mist-50);
 }
 
@@ -546,13 +550,52 @@ select:focus-visible {
 }
 
 .message-bubble.photo {
+  max-width: min(260px, 72vw);
   padding: 6px;
+}
+
+.photo-preview {
+  position: relative;
+  overflow: hidden;
+  border-radius: 13px;
+  background: #dce8ed;
 }
 
 .message-bubble.photo img {
   display: block;
-  max-width: 240px;
-  border-radius: 13px;
+  width: 100%;
+  max-width: 260px;
+  max-height: 200px;
+  object-fit: contain;
+}
+
+.photo-upload-status {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  color: var(--white);
+  background: rgba(4, 25, 42, 0.78);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.photo-upload-status span {
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: photoSpin 700ms linear infinite;
+}
+
+.photo-upload-status.failed {
+  background: rgba(135, 38, 22, 0.88);
 }
 
 .message-bubble.safety {
@@ -884,6 +927,7 @@ select:focus-visible {
 }
 
 .composer {
+  flex: 0 0 auto;
   padding: 13px 20px 14px;
   border-top: 1px solid var(--mist-200);
   background: rgba(255, 255, 255, 0.96);
@@ -1026,14 +1070,20 @@ select:focus-visible {
   }
 }
 
+@keyframes photoSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 900px) {
   .app-shell {
     padding: 18px;
   }
 
   .demo-frame {
-    height: calc(100dvh - 36px);
-    min-height: 640px;
+    height: 100%;
+    min-height: 0;
     grid-template-columns: 286px minmax(0, 1fr);
   }
 
