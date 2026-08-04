@@ -2,28 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 
-const C = {
-  blue: "#1c5d99",
-  blueDark: "#154a7a",
-  blueSubtle: "rgba(28,93,153,0.08)",
-  blueBorder: "rgba(28,93,153,0.22)",
-  ember: "#e8871e",
-  emberDark: "#c96f0f",
-  emberSubtle: "rgba(232,135,30,0.10)",
-  emberBorder: "rgba(232,135,30,0.35)",
-  bg: "#f2f6fa",
-  bubbleAi: "#eaf0f6",
-  white: "#ffffff",
-  text: "#182636",
-  textMuted: "#647082",
-  border: "#dbe4ee",
-  green: "#16a34a",
-  greenBg: "#f0fdf4",
-  red: "#dc2626",
-};
-
 const GREETING =
-  "Hi — I'm the Havenbrook Restoration intake assistant, here 24/7. What's going on: water damage, fire or smoke damage, mould, or storm damage?";
+  "Hi, thanks for reaching out. Tell me what happened at the property, and I’ll ask a few questions to help our team understand the situation.";
 
 const MAX_TEXTAREA_HEIGHT = 120;
 const PHONE_NUMBER_DISPLAY = "(800) 555-0174";
@@ -124,46 +104,57 @@ function toApiMessage(m: ChatMessage) {
   return { role: m.role, content: m.content };
 }
 
-function PhoneIcon() {
+function Icon({
+  name,
+  size = 18,
+}: {
+  name: "phone" | "water" | "fire" | "mould" | "storm" | "shield" | "send" | "attach" | "lock" | "check" | "alert";
+  size?: number;
+}) {
+  const paths: Record<string, React.ReactNode> = {
+    phone: <path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.16.38 2.37.57 3.58.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.62 21 3 13.38 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.22.2 2.42.57 3.58a1 1 0 0 1-.25 1.02z" />,
+    water: <path d="M12 2.5S5.5 9.2 5.5 14.1a6.5 6.5 0 0 0 13 0C18.5 9.2 12 2.5 12 2.5Zm-3.1 12a3.3 3.3 0 0 0 3.3 3.3" />,
+    fire: <path d="M13.6 2.7c.7 3.2-.5 4.6-1.8 6.1-1.1-1-1.5-2-1.4-3.2-2.5 2-4.4 4.8-4.4 8.1a6 6 0 0 0 12 0c0-4.8-2.8-8.2-4.4-11Zm-1.5 17.1a3 3 0 0 1-3-3c0-1.8 1.1-3.2 2.6-4.6.1 1.3.7 2.2 1.5 3 .7-.8 1.2-1.7 1.3-2.8.9 1.2 1.5 2.5 1.5 4.1a3.3 3.3 0 0 1-3.9 3.3Z" />,
+    mould: <><path d="M12 20.5c4.5 0 7.5-3.1 7.5-7.5V5.2c-4.4 0-7.5 2-7.5 6.7 0-3.5-2.5-5.7-7.5-5.7V13c0 4.4 3 7.5 7.5 7.5Z" /><path d="M12 20.5v-8.6m0 3.7 3.4-3.4M12 16l-3.6-3.6" /></>,
+    storm: <><path d="M8.4 16.5H6.8a4.3 4.3 0 1 1 1-8.5A6 6 0 0 1 19 10.7a3.1 3.1 0 0 1-.5 6.1h-2" /><path d="m12 13-2 4h3l-1.3 4 4.3-6h-3l1.4-2" /></>,
+    shield: <><path d="M12 3 19 6v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z" /><path d="m9 12.2 2 2 4-4.2" /></>,
+    send: <><path d="m4 4 16 8-16 8 3-8-3-8Z" /><path d="M7 12h13" /></>,
+    attach: <path d="m20.5 11.5-8.2 8.2a6 6 0 0 1-8.5-8.5l8.6-8.6a4 4 0 0 1 5.7 5.7l-8.6 8.6a2 2 0 1 1-2.8-2.8l8-8" />,
+    lock: <><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>,
+    check: <path d="m5 12.5 4.2 4.2L19.5 6.5" />,
+    alert: <><path d="M12 3 2.8 20h18.4L12 3Z" /><path d="M12 9v5m0 3h.01" /></>,
+  };
+
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-      <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.58.57 1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.49a1 1 0 011 1 11.36 11.36 0 00.57 3.58 1 1 0 01-.25 1.01l-2.2 2.2z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {paths[name]}
     </svg>
   );
 }
 
-function ShieldIcon() {
+function BrandMark() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z" />
-      <path d="M9 12.2l2 2 4-4.2" />
+    <svg className="brand-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <rect x="2" y="2" width="60" height="60" rx="18" fill="#0B8EB4" />
+      <path d="M32 13.5s-13 13.3-13 23a13 13 0 0 0 26 0c0-9.7-13-23-13-23Z" stroke="white" strokeWidth="3.2" />
+      <path d="M25.3 36.8 30 41.5l9.4-10.1" stroke="white" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
 function TypingDots() {
   return (
-    <div style={{ display: "flex", gap: 5, padding: "14px 18px" }}>
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: "#9aa7b5",
-            animation: `typePulse 1.3s ease-in-out ${i * 0.18}s infinite`,
-          }}
-        />
-      ))}
+    <div className="typing-bubble" aria-label="Havenbrook is typing">
+      <span />
+      <span />
+      <span />
     </div>
   );
 }
 
 const PHONE_DIGITS_RE = /\d/g;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function ContactForm({
+function RedesignedContactForm({
   onSubmit,
   urgent,
   submitting,
@@ -179,122 +170,411 @@ function ContactForm({
   const [honeypot, setHoneypot] = useState("");
 
   const update = (key: string, value: string) => {
-    setForm((f) => ({ ...f, [key]: value }));
-    if (errors[key]) setErrors((e) => ({ ...e, [key]: false }));
+    setForm((current) => ({ ...current, [key]: value }));
+    if (errors[key]) setErrors((current) => ({ ...current, [key]: false }));
   };
 
   const validate = () => {
-    const e: Record<string, boolean> = {};
-    if (!form.name.trim()) e.name = true;
+    const nextErrors: Record<string, boolean> = {};
+    if (!form.name.trim()) nextErrors.name = true;
     const phoneDigits = (form.phone.match(PHONE_DIGITS_RE) || []).length;
-    if (!form.phone.trim() || phoneDigits < 10) e.phone = true;
-    if (!form.address.trim()) e.address = true;
-    if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) e.email = true;
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    if (!form.phone.trim() || phoneDigits < 10) nextErrors.phone = true;
+    if (!form.address.trim()) nextErrors.address = true;
+    if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) nextErrors.email = true;
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const submit = () => {
-    if (submitting) return;
-    if (validate()) {
+    if (!submitting && validate()) {
       onSubmit({ ...form, honeypot, submittedAt: new Date().toISOString() });
     }
   };
 
-  const accent = urgent ? C.ember : C.blue;
-
-  const inputStyle = (key: string) => ({
-    width: "100%",
-    padding: "11px 14px",
-    borderRadius: 6,
-    border: `1px solid ${errors[key] ? C.red : C.border}`,
-    fontSize: 14,
-    outline: "none",
-    fontFamily: "system-ui, -apple-system, sans-serif",
-    boxSizing: "border-box" as const,
-    background: C.white,
-    color: C.text,
-  });
-
   return (
-    <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `3px solid ${accent}`, borderRadius: 10, padding: "22px 20px", marginTop: 6, animation: "fadeSlide 0.35s ease-out" }}>
-      <p style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>
-        {urgent ? "Let's get this to our on-call team right now" : "Almost done — how should the team reach you?"}
-      </p>
-      <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 16, lineHeight: 1.4 }}>
-        {urgent ? "This takes about 30 seconds. A few more questions after this help the crew arrive prepared." : "A member of our team will review your details and follow up."}
-      </p>
+    <section className={urgent ? "contact-card urgent" : "contact-card"} aria-labelledby="contact-card-title">
+      <div className="contact-card-head">
+        <div className="contact-card-icon">
+          <Icon name={urgent ? "alert" : "phone"} size={20} />
+        </div>
+        <h2 id="contact-card-title">{urgent ? "Let’s connect you with the on-call team" : "How should the team reach you?"}</h2>
+        <p>{urgent ? "Send the essentials now. We’ll keep gathering useful details after your request is received." : "Share the best contact details for this property and the team will review your request."}</p>
+      </div>
 
       <input
         type="text"
         name="_gotcha"
         value={honeypot}
-        onChange={(e) => setHoneypot(e.target.value)}
+        onChange={(event) => setHoneypot(event.target.value)}
         style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
         tabIndex={-1}
         autoComplete="off"
         aria-hidden="true"
       />
 
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Full Name</label>
-        <input style={inputStyle("name")} placeholder="e.g. Jordan Reyes" value={form.name} onChange={(e) => update("name", e.target.value)} />
-      </div>
+      <div className="contact-fields">
+        <div className="field">
+          <label htmlFor="lead-name">Full name</label>
+          <input
+            id="lead-name"
+            className={errors.name ? "invalid" : ""}
+            placeholder="Jordan Reyes"
+            value={form.name}
+            onChange={(event) => update("name", event.target.value)}
+            autoComplete="name"
+            aria-invalid={errors.name || undefined}
+          />
+        </div>
 
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Best Number to Reach You Right Now</label>
-        <input style={inputStyle("phone")} placeholder="(416) 000-0000" value={form.phone} onChange={(e) => update("phone", e.target.value)} />
-        {errors.phone && <p style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Enter a valid phone number (at least 10 digits).</p>}
-      </div>
+        <div className="field">
+          <label htmlFor="lead-phone">Best number</label>
+          <input
+            id="lead-phone"
+            type="tel"
+            inputMode="tel"
+            className={errors.phone ? "invalid" : ""}
+            placeholder="(416) 000-0000"
+            value={form.phone}
+            onChange={(event) => update("phone", event.target.value)}
+            autoComplete="tel"
+            aria-invalid={errors.phone || undefined}
+            aria-describedby={errors.phone ? "phone-error" : undefined}
+          />
+          {errors.phone && <p className="field-error" id="phone-error">Enter a valid 10-digit phone number.</p>}
+        </div>
 
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Property Address</label>
-        <input style={inputStyle("address")} placeholder="Street address, city" value={form.address} onChange={(e) => update("address", e.target.value)} />
-      </div>
+        <div className="field full">
+          <label htmlFor="lead-address">Property address</label>
+          <input
+            id="lead-address"
+            className={errors.address ? "invalid" : ""}
+            placeholder="Street address, city"
+            value={form.address}
+            onChange={(event) => update("address", event.target.value)}
+            autoComplete="street-address"
+            aria-invalid={errors.address || undefined}
+          />
+        </div>
 
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Email (optional)</label>
-        <input style={inputStyle("email")} placeholder="jordan@example.com" value={form.email} onChange={(e) => update("email", e.target.value)} />
-        {errors.email && <p style={{ fontSize: 11, color: C.red, marginTop: 4 }}>That doesn't look like a valid email address.</p>}
-      </div>
+        <div className="field">
+          <label htmlFor="lead-email">Email <span style={{ fontWeight: 500, textTransform: "none" }}>(optional)</span></label>
+          <input
+            id="lead-email"
+            type="email"
+            inputMode="email"
+            className={errors.email ? "invalid" : ""}
+            placeholder="jordan@example.com"
+            value={form.email}
+            onChange={(event) => update("email", event.target.value)}
+            autoComplete="email"
+            aria-invalid={errors.email || undefined}
+            aria-describedby={errors.email ? "email-error" : undefined}
+          />
+          {errors.email && <p className="field-error" id="email-error">Enter a valid email address.</p>}
+        </div>
 
-      <div style={{ marginBottom: 18 }}>
-        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4 }}>Best Time to Reach You</label>
-        <select style={{ ...inputStyle("time"), appearance: "auto" as const }} value={form.time} onChange={(e) => update("time", e.target.value)}>
-          <option>As soon as possible</option>
-          <option>Morning (9am–12pm)</option>
-          <option>Afternoon (12pm–5pm)</option>
-          <option>Evening (5pm–8pm)</option>
-          <option>Anytime</option>
-        </select>
-      </div>
+        <div className="field">
+          <label htmlFor="lead-time">Best time</label>
+          <select id="lead-time" value={form.time} onChange={(event) => update("time", event.target.value)}>
+            <option>As soon as possible</option>
+            <option>Morning (9am–12pm)</option>
+            <option>Afternoon (12pm–5pm)</option>
+            <option>Evening (5pm–8pm)</option>
+            <option>Anytime</option>
+          </select>
+        </div>
 
-      <button
-        onClick={submit}
-        disabled={submitting}
-        style={{ width: "100%", padding: "12px", background: accent, color: C.white, border: "none", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: submitting ? "default" : "pointer", opacity: submitting ? 0.6 : 1 }}
-      >
-        {submitting ? "Sending…" : urgent ? "Send to On-Call Team Now" : "Submit"}
-      </button>
-      {error && (
-        <p style={{ fontSize: 12, color: C.red, marginTop: 10, textAlign: "center" as const, lineHeight: 1.4 }}>
-          Something went wrong sending your details — please try again, or call us directly.
+        <button className="submit-button" type="button" onClick={submit} disabled={submitting}>
+          {submitting ? "Sending request…" : urgent ? "Send urgent request" : "Send request"}
+          {!submitting && <Icon name="send" size={16} />}
+        </button>
+
+        {error && (
+          <p className="form-error" role="alert">
+            We couldn’t send your details. Please try again or call {PHONE_NUMBER_DISPLAY} directly.
+          </p>
+        )}
+
+        <p className="privacy-note">
+          <Icon name="lock" size={13} />
+          Your details are used to respond to this restoration request. Don’t include payment information or government identification.
         </p>
-      )}
-    </div>
+      </div>
+    </section>
   );
 }
 
-function Confirmation({ leadData }: { leadData: any }) {
+function RedesignedConfirmation({ leadData }: { leadData: any }) {
+  const firstName = leadData.name.split(" ")[0];
+  const timing = leadData.time === "As soon as possible" ? "as soon as possible" : leadData.time.toLowerCase();
+
   return (
-    <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.green}`, borderRadius: 10, padding: "28px 22px", textAlign: "center" as const, marginTop: 6, animation: "fadeSlide 0.35s ease-out" }}>
-      <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.greenBg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", fontSize: 22, color: C.green }}>✓</div>
-      <p style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>Thanks, {leadData.name.split(" ")[0]} — you're all set.</p>
-      <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5, marginBottom: 18 }}>
-        A member of the Havenbrook Restoration team has your details and will reach out {leadData.time === "As soon as possible" ? "as soon as possible" : leadData.time.toLowerCase()}.
-        {" "}If anything changes or gets worse before then, call us directly at {PHONE_NUMBER_DISPLAY}.
+    <section className="confirmation-card" aria-live="polite">
+      <div className="confirmation-icon">
+        <Icon name="check" size={26} />
+      </div>
+      <h2>Request received, {firstName}.</h2>
+      <p>
+        The Havenbrook team has your details and will follow up {timing}. If the situation changes or becomes unsafe, leave the area and call the appropriate emergency service. You can also call Havenbrook directly at {PHONE_NUMBER_DISPLAY}.
       </p>
-    </div>
+    </section>
+  );
+}
+
+const QUICK_STARTS = [
+  { label: "Water damage", icon: "water" as const, prompt: "I have water damage at the property." },
+  { label: "Fire or smoke", icon: "fire" as const, prompt: "I have fire or smoke damage at the property." },
+  { label: "Mould concern", icon: "mould" as const, prompt: "I’m concerned about mould at the property." },
+  { label: "Storm damage", icon: "storm" as const, prompt: "I have storm damage at the property." },
+];
+
+function RedesignedShell({
+  messages,
+  loading,
+  phase,
+  input,
+  setInput,
+  send,
+  uploading,
+  handleAttach,
+  fileInputRef,
+  textareaRef,
+  scrollRef,
+  urgencyTier,
+  urgentBannerIndex,
+  formSubmitting,
+  formError,
+  handleContactSubmit,
+  finalLeadData,
+  urgent,
+}: {
+  messages: ChatMessage[];
+  loading: boolean;
+  phase: "chat" | "contact_form" | "enrichment" | "done";
+  input: string;
+  setInput: (value: string) => void;
+  send: (value: string) => void;
+  uploading: boolean;
+  handleAttach: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  scrollRef: React.RefObject<HTMLDivElement>;
+  urgencyTier: string;
+  urgentBannerIndex: number | null;
+  formSubmitting: boolean;
+  formError: boolean;
+  handleContactSubmit: (data: any) => void;
+  finalLeadData: any;
+  urgent: boolean;
+}) {
+  const contactConfirmed = phase === "enrichment" || phase === "done";
+  const statusText =
+    urgencyTier === "emergency"
+      ? contactConfirmed
+        ? "Emergency request received"
+        : "Emergency guidance"
+      : urgencyTier === "urgent"
+      ? contactConfirmed
+        ? "Urgent request received"
+        : "Urgent situation identified"
+      : "Intake assistant online";
+
+  const activeStep = phase === "chat" ? 1 : phase === "contact_form" ? 2 : 3;
+
+  return (
+    <main className="app-shell">
+      <section className="demo-frame" aria-label="Havenbrook Restoration intake">
+        <aside className="brand-panel">
+          <div className="brand-lockup">
+            <BrandMark />
+            <div>
+              <div className="brand-name">Havenbrook</div>
+              <div className="brand-kicker">Restoration Services</div>
+            </div>
+          </div>
+
+          <div className="brand-copy">
+            <div className="eyebrow">Ontario response team</div>
+            <h1>Clear next steps when <em>every minute matters.</em></h1>
+            <p>
+              Tell us what happened. The intake assistant will identify immediate safety concerns and gather the details the restoration team needs.
+            </p>
+
+            <div className="service-grid" aria-label="Restoration services">
+              {QUICK_STARTS.map((item) => (
+                <div className="service-chip-static" key={item.label}>
+                  <Icon name={item.icon} size={15} />
+                  {item.label}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="response-card">
+            <span className="response-pulse" />
+            <div>
+              <strong>Intake available 24/7</strong>
+              <span>Greater Toronto Area and surrounding communities</span>
+            </div>
+          </div>
+        </aside>
+
+        <section className="chat-panel">
+          <header className="chat-header">
+            <div className="mobile-brand">
+              <BrandMark />
+              <div>
+                <strong>Havenbrook Restoration</strong>
+                <span>Ontario response team</span>
+              </div>
+            </div>
+
+            <div className="status-block" aria-live="polite">
+              <div className="status-row">
+                <span className={urgent ? "status-dot urgent" : "status-dot"} />
+                <span className="status-label">{statusText}</span>
+              </div>
+              <p className="status-subtitle">Safety first. One clear question at a time.</p>
+            </div>
+
+            <a className="call-button" href={"tel:" + PHONE_NUMBER_TEL} aria-label={"Call Havenbrook Restoration at " + PHONE_NUMBER_DISPLAY}>
+              <Icon name="phone" size={15} />
+              Call now
+            </a>
+          </header>
+
+          <div className="progress-rail" aria-label={"Intake progress, step " + activeStep + " of 3"}>
+            {["Situation", "Callback", "Details"].map((label, index) => {
+              const step = index + 1;
+              const className = step < activeStep ? "progress-step complete" : step === activeStep ? "progress-step active" : "progress-step";
+              return (
+                <div className={className} key={label}>
+                  <span className="progress-number">{step < activeStep ? "✓" : step}</span>
+                  <span>{label}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="transcript" ref={scrollRef} aria-live="polite">
+            <div className="assistant-intro">
+              <span className="assistant-avatar"><Icon name="shield" size={15} /></span>
+              Havenbrook intake assistant
+            </div>
+
+            {messages.map((message, index) => {
+              const isPhoto = message.role === "user" && message.kind === "photo";
+              const isNote = message.role === "user" && message.kind === "note";
+              const isUrgentFlag = index === urgentBannerIndex;
+
+              if (isNote) {
+                return (
+                  <div className="system-note" key={index}>
+                    <Icon name="check" size={13} />
+                    Request details successfully sent
+                  </div>
+                );
+              }
+
+              return (
+                <div className={"message-row " + (message.role === "user" ? "user" : "assistant")} key={index}>
+                  <div className={"message-bubble" + (isPhoto ? " photo" : "") + (isUrgentFlag ? " safety" : "")}>
+                    {isUrgentFlag && (
+                      <div className="safety-label">
+                        <Icon name="alert" size={12} />
+                        Safety first
+                      </div>
+                    )}
+                    {isPhoto ? (
+                      <img src={message.content} alt="Attached property photo" />
+                    ) : (
+                      message.content
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {messages.length === 1 && phase === "chat" && !loading && (
+              <div className="quick-start">
+                <p className="quick-start-label">Choose a starting point or describe the situation below.</p>
+                <div className="quick-start-options">
+                  {QUICK_STARTS.map((item) => (
+                    <button className="quick-action" type="button" onClick={() => send(item.prompt)} key={item.label}>
+                      <Icon name={item.icon} size={15} />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {loading && (
+              <div className="message-row assistant">
+                <TypingDots />
+              </div>
+            )}
+
+            {phase === "contact_form" && (
+              <RedesignedContactForm urgent={urgent} submitting={formSubmitting} error={formError} onSubmit={handleContactSubmit} />
+            )}
+
+            {phase === "done" && finalLeadData && <RedesignedConfirmation leadData={finalLeadData} />}
+          </div>
+
+          {phase === "enrichment" && (
+            <div className="confirmed-banner">
+              ✓ Your request is with the team. A few more questions will help them understand the property and damage.
+            </div>
+          )}
+
+          {(phase === "chat" || phase === "enrichment") && (
+            <footer className="composer">
+              <div className="composer-row">
+                <button
+                  className="icon-button"
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || loading}
+                  aria-label={uploading ? "Uploading photo" : "Attach a property photo"}
+                  title="Attach a property photo"
+                >
+                  {uploading ? <span aria-hidden="true">…</span> : <Icon name="attach" size={18} />}
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAttach} hidden />
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      send(input);
+                    }
+                  }}
+                  placeholder="Describe what happened…"
+                  disabled={loading}
+                  rows={1}
+                  aria-label="Describe your restoration situation"
+                />
+                <button
+                  className={"send-button" + (urgent ? " urgent" : "")}
+                  type="button"
+                  onClick={() => send(input)}
+                  disabled={loading || !input.trim()}
+                  aria-label="Send message"
+                >
+                  <Icon name="send" size={18} />
+                </button>
+              </div>
+              <div className="composer-meta">
+                <span>General information only — not an assessment, quote or coverage decision.</span>
+              </div>
+            </footer>
+          )}
+        </section>
+      </section>
+    </main>
   );
 }
 
@@ -535,161 +815,27 @@ export default function Home() {
   };
 
   const urgent = urgencyTier !== "consultative";
-  // Contact info is only actually with the team once phase has moved past contact_form via a
-  // confirmed Formspree delivery (see handleContactSubmit) — "received"/"on it" language before
-  // that point would be a false promise to someone in an emergency.
-  const contactConfirmed = phase === "enrichment" || phase === "done";
-  const headerPillText =
-    urgencyTier === "emergency"
-      ? contactConfirmed
-        ? "⚠ EMERGENCY — REQUEST RECEIVED"
-        : "⚠ EMERGENCY GUIDANCE"
-      : urgencyTier === "urgent"
-      ? contactConfirmed
-        ? "✦ URGENT — REQUEST RECEIVED"
-        : "✦ URGENT SITUATION IDENTIFIED"
-      : "✦ 24/7 RESPONSE · FREE ASSESSMENT";
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: C.bg }}>
-      <div style={{ width: "100%", maxWidth: 560, background: C.white, borderRadius: 14, boxShadow: "0 12px 40px rgba(24,38,54,0.14)", overflow: "hidden", border: `1px solid ${C.border}` }}>
-        <div style={{ background: C.blue, padding: "20px 22px", color: C.white }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <ShieldIcon />
-              <div>
-                <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: 0.3 }}>HAVENBROOK RESTORATION</div>
-                <div style={{ fontSize: 11, opacity: 0.85, letterSpacing: 1, marginTop: 2 }}>WATER · FIRE · MOULD · STORM — ONTARIO</div>
-              </div>
-            </div>
-            <a href={`tel:${PHONE_NUMBER_TEL}`} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: C.white, padding: "8px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}>
-              <PhoneIcon />
-              CALL NOW
-            </a>
-          </div>
-          <div
-            style={{
-              display: "inline-block",
-              marginTop: 12,
-              background: urgencyTier === "emergency" ? C.ember : "rgba(255,255,255,0.14)",
-              padding: "5px 12px",
-              borderRadius: 20,
-              fontSize: 11,
-              fontWeight: 700,
-              transition: "background 0.25s",
-            }}
-          >
-            {headerPillText}
-          </div>
-        </div>
-
-        <div ref={scrollRef} style={{ height: 440, overflowY: "auto", padding: "18px 20px", background: C.bg }}>
-          {messages.map((m, i) => {
-            const isPhoto = m.role === "user" && m.kind === "photo";
-            const isNote = m.role === "user" && m.kind === "note";
-            const photoUrl = isPhoto ? m.content : null;
-            const isUrgentFlag = i === urgentBannerIndex;
-
-            if (isNote) {
-              return (
-                <div key={i} style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: C.blue, background: C.blueSubtle, border: `1px solid ${C.blueBorder}`, borderRadius: 20, padding: "5px 12px" }}>
-                    ✓ Contact info sent to our on-call team
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", marginBottom: 12 }}>
-                <div
-                  style={{
-                    maxWidth: "82%",
-                    padding: isPhoto ? 6 : "11px 15px",
-                    borderRadius: 14,
-                    background: m.role === "user" ? C.blue : C.bubbleAi,
-                    color: m.role === "user" ? C.white : C.text,
-                    fontSize: 14,
-                    lineHeight: 1.5,
-                    whiteSpace: isPhoto ? "normal" : "pre-wrap",
-                    overflowWrap: "break-word",
-                    border: isUrgentFlag ? `1px solid ${C.emberBorder}` : "none",
-                    borderLeft: isUrgentFlag ? `3px solid ${C.ember}` : undefined,
-                    boxShadow: isUrgentFlag ? `0 0 0 1px ${C.emberSubtle}` : undefined,
-                  }}
-                >
-                  {isUrgentFlag && (
-                    <div style={{ fontSize: 10, fontWeight: 800, color: C.emberDark, letterSpacing: 0.6, marginBottom: 4 }}>⚠ SAFETY FIRST</div>
-                  )}
-                  {isPhoto && photoUrl ? <img src={photoUrl} alt="Attached property photo" style={{ maxWidth: 200, borderRadius: 10, display: "block" }} /> : m.content}
-                </div>
-              </div>
-            );
-          })}
-          {loading && (
-            <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
-              <div style={{ background: C.bubbleAi, borderRadius: 14 }}>
-                <TypingDots />
-              </div>
-            </div>
-          )}
-          {phase === "contact_form" && (
-            <ContactForm urgent={urgent} submitting={formSubmitting} error={formError} onSubmit={handleContactSubmit} />
-          )}
-          {phase === "done" && finalLeadData && <Confirmation leadData={finalLeadData} />}
-        </div>
-
-        {phase === "enrichment" && (
-          <div style={{ padding: "8px 20px", background: urgent ? C.emberSubtle : C.blueSubtle, borderTop: `1px solid ${C.border}`, animation: "bannerSlide 0.3s ease-out" }}>
-            <p style={{ fontSize: 11.5, fontWeight: 600, color: urgent ? C.emberDark : C.blueDark, margin: 0, textAlign: "center" as const }}>
-              ✓ Your details are with our on-call team. A few more questions will help the crew arrive prepared.
-            </p>
-          </div>
-        )}
-
-        {(phase === "chat" || phase === "enrichment") && (
-          <div style={{ padding: "14px 16px", borderTop: `1px solid ${C.border}`, background: C.white }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-              <button onClick={() => fileInputRef.current?.click()} disabled={uploading || loading} title="Attach a photo" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: "50%", border: `1px solid ${C.border}`, background: C.white, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {uploading ? "…" : "📎"}
-              </button>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAttach} style={{ display: "none" }} />
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    send(input);
-                  }
-                }}
-                placeholder="Describe your situation…"
-                disabled={loading}
-                rows={1}
-                style={{
-                  flex: 1,
-                  padding: "11px 14px",
-                  borderRadius: 20,
-                  border: `1px solid ${C.border}`,
-                  fontSize: 14,
-                  outline: "none",
-                  resize: "none",
-                  fontFamily: "inherit",
-                  lineHeight: 1.4,
-                  overflowY: "hidden",
-                }}
-              />
-              <button onClick={() => send(input)} disabled={loading || !input.trim()} style={{ width: 40, height: 40, flexShrink: 0, borderRadius: "50%", border: "none", background: urgent ? C.ember : C.blue, color: C.white, cursor: "pointer", fontSize: 16, opacity: loading || !input.trim() ? 0.5 : 1 }}>
-                ➤
-              </button>
-            </div>
-            <p style={{ fontSize: 10.5, color: C.textMuted, textAlign: "center", marginTop: 10, lineHeight: 1.4 }}>
-              This tool provides general information only and is not an assessment, quote, or coverage determination. Serving the Greater Toronto Area and surrounding Ontario communities.
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
+    <RedesignedShell
+      messages={messages}
+      loading={loading}
+      phase={phase}
+      input={input}
+      setInput={setInput}
+      send={send}
+      uploading={uploading}
+      handleAttach={handleAttach}
+      fileInputRef={fileInputRef}
+      textareaRef={textareaRef}
+      scrollRef={scrollRef}
+      urgencyTier={urgencyTier}
+      urgentBannerIndex={urgentBannerIndex}
+      formSubmitting={formSubmitting}
+      formError={formError}
+      handleContactSubmit={handleContactSubmit}
+      finalLeadData={finalLeadData}
+      urgent={urgent}
+    />
   );
 }
