@@ -23,14 +23,11 @@ const C = {
 };
 
 const GREETING =
-  "Hi — I'm the Havenbrook Restoration intake assistant, here 24/7. What's going on: water damage, fire or smoke damage, mold, or storm damage?";
+  "Hi — I'm the Havenbrook Restoration intake assistant, here 24/7. What's going on: water damage, fire or smoke damage, mould, or storm damage?";
 
 const MAX_TEXTAREA_HEIGHT = 120;
 const PHONE_NUMBER_DISPLAY = "(800) 555-0174";
 const PHONE_NUMBER_TEL = "+18005550174";
-
-const PHOTO_MARKER = /^\[Attached a photo: (.*)\]$/;
-const SYSTEM_NOTE_MARKER = /^\[SYSTEM_NOTE: (.*)\]$/;
 
 const SUMMARY_LABELS: Record<string, string> = {
   propertyAddress: "Property Address",
@@ -43,7 +40,7 @@ const SUMMARY_LABELS: Record<string, string> = {
   standingWater: "Standing Water",
   whenStarted: "When It Started",
   surfacesWet: "Surfaces Wet",
-  mustyOrVisibleMold: "Musty Smell / Visible Mold",
+  mustyOrVisibleMold: "Musty Smell / Visible Mould",
   priorActionsTaken: "Actions Taken So Far",
   insuranceClaimFiled: "Insurance Claim Filed",
   insuranceCarrier: "Insurance Carrier",
@@ -60,7 +57,7 @@ const SUMMARY_LABELS: Record<string, string> = {
   contentsAssessmentNeeded: "Contents Assessment Needed",
   fireInvestigatorInvolved: "Fire Investigator Involved",
   occupiedOrCanRelocate: "Occupied / Can Relocate",
-  extentVsThreshold: "Extent (vs. ~10 sq ft)",
+  extentVsThreshold: "Mould Extent (Health Canada scale)",
   location: "Location",
   hvacProximity: "Near HVAC",
   hvacRunning: "HVAC Running",
@@ -89,19 +86,31 @@ function formatSummaryText(summary: Record<string, any>, urgencyTier: string, pe
   return lines.join("\n");
 }
 
+const PERIL_DISPLAY: Record<string, string> = { mold: "MOULD" };
+
 function leadTag(urgencyTier: string, peril: string) {
   const tierPrefix = urgencyTier === "emergency" ? "EMERGENCY" : urgencyTier === "urgent" ? "URGENT" : "LEAD";
-  const perilLabel = (peril || "OTHER").toUpperCase();
+  const perilLabel = PERIL_DISPLAY[peril] || (peril || "OTHER").toUpperCase();
   return `[${tierPrefix}-${perilLabel}]`;
 }
 
-function toApiMessage(m: { role: string; content: string }) {
-  const photoMatch = m.role === "user" ? m.content.match(PHOTO_MARKER) : null;
-  if (photoMatch) {
+function generateLeadId() {
+  return `HB-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
+}
+
+type ChatMessage = { role: string; content: string; kind?: "photo" | "note" };
+
+// `kind` is only ever set by our own code (handleAttach, handleContactSubmit) — never derived
+// from parsing a message's text. A visitor typing literal "[SYSTEM_NOTE: ...]" or
+// "[Attached a photo: ...]" into the chat box produces a message with no `kind` at all, so it
+// can never be mistaken for a trusted system event, either in rendering or in what gets sent
+// to the model. This was previously string-pattern-based and spoofable.
+function toApiMessage(m: ChatMessage) {
+  if (m.role === "user" && m.kind === "photo") {
     return {
       role: "user",
       content: [
-        { type: "image", source: { type: "url", url: photoMatch[1] } },
+        { type: "image", source: { type: "url", url: m.content } },
         {
           type: "text",
           text: "Here's the photo I attached. Take a close look at what's actually in it before responding.",
@@ -109,9 +118,8 @@ function toApiMessage(m: { role: string; content: string }) {
       ],
     };
   }
-  const noteMatch = m.role === "user" ? m.content.match(SYSTEM_NOTE_MARKER) : null;
-  if (noteMatch) {
-    return { role: "user", content: noteMatch[1] };
+  if (m.role === "user" && m.kind === "note") {
+    return { role: "user", content: m.content };
   }
   return { role: m.role, content: m.content };
 }
@@ -278,19 +286,6 @@ function ContactForm({
 }
 
 function Confirmation({ leadData }: { leadData: any }) {
-  const [copied, setCopied] = useState(false);
-
-  const copySummary = () => {
-    const lines = leadData.transcript.map((m: any) => `${m.role === "user" ? "VISITOR" : "ASSISTANT"}: ${m.content}`).join("\n");
-    const photoLines = leadData.photos?.length ? `\nPHOTOS:\n${leadData.photos.join("\n")}` : "";
-    const structured = formatSummaryText(leadData.summary || {}, leadData.urgencyTier, leadData.peril);
-    const summary = `--- HAVENBROOK RESTORATION — NEW LEAD ---\n${leadTag(leadData.urgencyTier, leadData.peril)}\nNAME: ${leadData.name}\nPHONE: ${leadData.phone}\nEMAIL: ${leadData.email || "not provided"}\nADDRESS: ${leadData.address}\nBEST TIME: ${leadData.time}\nSUBMITTED: ${new Date(leadData.submittedAt).toLocaleString()}${photoLines}\n\n--- INTAKE SUMMARY ---\n${structured}\n\n--- CONVERSATION TRANSCRIPT ---\n\n${lines}`;
-    navigator.clipboard.writeText(summary).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    });
-  };
-
   return (
     <div style={{ background: C.white, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.green}`, borderRadius: 10, padding: "28px 22px", textAlign: "center" as const, marginTop: 6, animation: "fadeSlide 0.35s ease-out" }}>
       <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.greenBg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", fontSize: 22, color: C.green }}>✓</div>
@@ -299,15 +294,12 @@ function Confirmation({ leadData }: { leadData: any }) {
         A member of the Havenbrook Restoration team has your details and will reach out {leadData.time === "As soon as possible" ? "as soon as possible" : leadData.time.toLowerCase()}.
         {" "}If anything changes or gets worse before then, call us directly at {PHONE_NUMBER_DISPLAY}.
       </p>
-      <button onClick={copySummary} style={{ fontSize: 12, fontWeight: 600, color: C.blue, background: "transparent", border: `1px solid ${C.blueBorder}`, borderRadius: 6, padding: "8px 14px", cursor: "pointer" }}>
-        {copied ? "Copied ✓" : "Copy lead summary"}
-      </button>
     </div>
   );
 }
 
 export default function Home() {
-  const [messages, setMessages] = useState([{ role: "assistant", content: GREETING }]);
+  const [messages, setMessages] = useState<ChatMessage[]>([{ role: "assistant", content: GREETING }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<"chat" | "contact_form" | "enrichment" | "done">("chat");
@@ -339,7 +331,7 @@ export default function Home() {
     el.style.overflowY = needed > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
   }, [input]);
 
-  const submitToFormspree = async (payload: Record<string, string>) => {
+  const submitToFormspree = async (payload: Record<string, string>, retriesLeft = 1): Promise<boolean> => {
     try {
       const fd = new FormData();
       Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
@@ -348,9 +340,13 @@ export default function Home() {
         headers: { Accept: "application/json" },
         body: fd,
       });
-      return res.ok;
+      if (res.ok) return true;
+      console.error("Formspree submission returned non-OK status:", res.status);
+      if (retriesLeft > 0) return submitToFormspree(payload, retriesLeft - 1);
+      return false;
     } catch (err) {
       console.error("Formspree submission failed:", err);
+      if (retriesLeft > 0) return submitToFormspree(payload, retriesLeft - 1);
       return false;
     }
   };
@@ -417,7 +413,14 @@ export default function Home() {
       // literally named "email" as a real email address and rejects the whole
       // submission (422) if it isn't one. Email is optional on our form, so a
       // placeholder like "not provided" would silently drop every emailless lead.
-      submitToFormspree(payload);
+      // Not awaited: by this point the visitor has already been told they're done and has
+      // the direct phone number on screen as a fallback, so there's nothing actionable left
+      // for them to do — blocking the confirmation screen on this second, lower-stakes
+      // submission would be worse UX with no upside. submitToFormspree already retries once
+      // internally; log clearly if it still fails so it's visible in Vercel logs.
+      submitToFormspree({ ...payload, leadId: leadInfo?.leadId || "" }).then((delivered) => {
+        if (!delivered) console.error(`Final Formspree update failed to deliver for lead ${leadInfo?.leadId || "(no id)"}  (${leadInfo?.name || "unknown"})`);
+      });
       setFinalLeadData({
         ...leadInfo,
         urgencyTier: newTier,
@@ -468,7 +471,7 @@ export default function Home() {
       }
       if (res.ok && data?.url) {
         setPhotos((p) => [...p, data.url]);
-        const next = [...messages, { role: "user", content: `[Attached a photo: ${data.url}]` }];
+        const next: ChatMessage[] = [...messages, { role: "user", content: data.url, kind: "photo" }];
         setMessages(next);
         setLoading(true);
         await callChat(next, phase === "enrichment");
@@ -487,11 +490,13 @@ export default function Home() {
   const handleContactSubmit = async (data: any) => {
     setFormError(false);
     setFormSubmitting(true);
+    const leadId = generateLeadId();
     try {
       const payload = {
-        _subject: `${leadTag(urgencyTier, peril)} New Havenbrook lead — ${data.name}`,
+        _subject: `${leadTag(urgencyTier, peril)} New Havenbrook lead — ${data.name} [${leadId}]`,
         status: "initial capture — enrichment in progress",
         leadTag: leadTag(urgencyTier, peril),
+        leadId,
         name: data.name,
         phone: data.phone,
         contactEmail: data.email || "not provided",
@@ -504,13 +509,19 @@ export default function Home() {
         transcript: messages.map((m: any) => `${m.role === "user" ? "VISITOR" : "ASSISTANT"}: ${m.content}`).join("\n"),
         _gotcha: data.honeypot || "",
       };
-      // Fire-and-forget: this is the critical early capture, sent before any
-      // enrichment questions are asked, so the visitor is never blocked on it.
-      submitToFormspree(payload);
-      setLeadInfo(data);
+      // Awaited, with an internal retry (see submitToFormspree) — this is the critical early
+      // capture. The visitor must not be told their details are with the on-call team unless
+      // that's actually true, so we wait for real confirmation before doing anything else.
+      const delivered = await submitToFormspree(payload);
+      if (!delivered) {
+        setFormError(true);
+        return;
+      }
 
-      const noteText = `[SYSTEM_NOTE: Contact information received — name: ${data.name}, phone: ${data.phone}, address: ${data.address}. Continue the conversation naturally; do not ask for contact details again.]`;
-      const next = [...messages, { role: "user", content: noteText }];
+      setLeadInfo({ ...data, leadId });
+
+      const noteText = `Contact information received — name: ${data.name}, phone: ${data.phone}, address: ${data.address}. Continue the conversation naturally; do not ask for contact details again.`;
+      const next: ChatMessage[] = [...messages, { role: "user", content: noteText, kind: "note" }];
       setMessages(next);
       setPhase("enrichment");
       setLoading(true);
@@ -524,8 +535,20 @@ export default function Home() {
   };
 
   const urgent = urgencyTier !== "consultative";
+  // Contact info is only actually with the team once phase has moved past contact_form via a
+  // confirmed Formspree delivery (see handleContactSubmit) — "received"/"on it" language before
+  // that point would be a false promise to someone in an emergency.
+  const contactConfirmed = phase === "enrichment" || phase === "done";
   const headerPillText =
-    urgencyTier === "emergency" ? "⚠ EMERGENCY — WE'RE ON IT" : urgencyTier === "urgent" ? "✦ URGENT REQUEST — RESPONDING FAST" : "✦ 24/7 RESPONSE · FREE ASSESSMENT";
+    urgencyTier === "emergency"
+      ? contactConfirmed
+        ? "⚠ EMERGENCY — REQUEST RECEIVED"
+        : "⚠ EMERGENCY GUIDANCE"
+      : urgencyTier === "urgent"
+      ? contactConfirmed
+        ? "✦ URGENT — REQUEST RECEIVED"
+        : "✦ URGENT SITUATION IDENTIFIED"
+      : "✦ 24/7 RESPONSE · FREE ASSESSMENT";
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: C.bg }}>
@@ -536,7 +559,7 @@ export default function Home() {
               <ShieldIcon />
               <div>
                 <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: 0.3 }}>HAVENBROOK RESTORATION</div>
-                <div style={{ fontSize: 11, opacity: 0.85, letterSpacing: 1, marginTop: 2 }}>WATER · FIRE · MOLD · STORM — ONTARIO</div>
+                <div style={{ fontSize: 11, opacity: 0.85, letterSpacing: 1, marginTop: 2 }}>WATER · FIRE · MOULD · STORM — ONTARIO</div>
               </div>
             </div>
             <a href={`tel:${PHONE_NUMBER_TEL}`} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: C.white, padding: "8px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}>
@@ -562,9 +585,9 @@ export default function Home() {
 
         <div ref={scrollRef} style={{ height: 440, overflowY: "auto", padding: "18px 20px", background: C.bg }}>
           {messages.map((m, i) => {
-            const isPhoto = m.role === "user" && m.content.startsWith("[Attached a photo:");
-            const isNote = m.role === "user" && m.content.startsWith("[SYSTEM_NOTE:");
-            const photoUrl = isPhoto ? m.content.match(/: (.*)\]/)?.[1] : null;
+            const isPhoto = m.role === "user" && m.kind === "photo";
+            const isNote = m.role === "user" && m.kind === "note";
+            const photoUrl = isPhoto ? m.content : null;
             const isUrgentFlag = i === urgentBannerIndex;
 
             if (isNote) {
